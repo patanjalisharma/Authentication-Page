@@ -16,7 +16,7 @@ const flash = require('connect-flash')
 const ExpressError = require('./utils/ExpressError')
 const wrapAsync = require('./utils/wrapAsync')
 const User = require('./models/users')
-const emailExistence = require('email-existence')
+
 const dbUrl = process.env.ATLASDB_URL;
 const store = MongoStore.create({
     mongoUrl : dbUrl,
@@ -80,15 +80,7 @@ app.get('/signup', (req, res) => {
 app.post('/signup', wrapAsync(async(req, res, next) => {
     try{
         let { email, username, password } = req.body
-        emailExistence.check(email, async (error, response) => {
-            if (error) {
-                return next(error); // Handle error if email check fails
-            }
-
-            if (!response) {
-                req.flash('error', 'Email does not exist or is invalid.');
-                return res.redirect('/signup');
-            }
+        
         const newUser = new User({email, username})
         const registeredUser = await User.register(newUser, password)
         req.login(registeredUser, (err) => {
@@ -98,7 +90,7 @@ app.post('/signup', wrapAsync(async(req, res, next) => {
             req.flash('success', 'successfully registered')
             return res.redirect('/')
         })
-    })
+    
         
     } catch(err) {
 
