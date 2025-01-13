@@ -106,10 +106,10 @@ app.get('/login' ,(req, res) => {
 app.post('/login', passport.authenticate('local', {
     failureFlash: true,
     failureRedirect: '/login'
-}), wrapAsync((req, res, next) => {
+}),(req, res) => {
     req.flash('success', 'Logged in');
     res.redirect('/');
-}));
+});
 
 
 
