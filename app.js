@@ -2,6 +2,7 @@ if(process.env.NODE_ENV != "production") {
     require('dotenv').config();
 }
 
+const axios = require('axios')
 const express = require('express')
 const app = express()
 const port = 3000
@@ -16,7 +17,7 @@ const flash = require('connect-flash')
 const ExpressError = require('./utils/ExpressError')
 const wrapAsync = require('./utils/wrapAsync')
 const User = require('./models/users')
-
+const ZEROBOUNCE_API_KEY = process.env.ZEROBOUNCE_API_KEY;
 const dbUrl = process.env.ATLASDB_URL;
 const store = MongoStore.create({
     mongoUrl : dbUrl,
@@ -59,7 +60,16 @@ passport.use(new passportLocal(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-
+const validateEmailWithZeroBounce = async (email) => {
+    const apiUrl = `https://api.zerobounce.net/v2/validate?api_key=${ZEROBOUNCE_API_KEY}&email=${email}`;
+    try {
+        const response = await axios.get(apiUrl);
+        return response.data; // Return the response data
+    } catch (error) {
+        console.error('Error during ZeroBounce validation:', error.message);
+        throw new Error('Error validating email with ZeroBounce.');
+    }
+};
 
 app.use((req, res, next) => {
     res.locals.success = req.flash("success");
@@ -79,7 +89,13 @@ app.get('/signup', (req, res) => {
 
 app.post('/signup', wrapAsync(async(req, res, next) => {
     try{
-        let { email, username, password } = req.body
+        const { email, username, password } = req.body
+
+        const emailValidation = await validateEmailWithZeroBounce(email)
+        if (emailValidation.status !== 'valid') {
+            req.flash('error', `Invalid email: ${emailValidation.sub_status || emailValidation.status}`);
+            return res.redirect('/signup');
+        }
         
         const newUser = new User({email, username})
         const registeredUser = await User.register(newUser, password)
