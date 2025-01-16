@@ -1,7 +1,6 @@
 if(process.env.NODE_ENV != "production") {
     require('dotenv').config();
 }
-
 const axios = require('axios')
 const express = require('express')
 const app = express()
@@ -145,7 +144,7 @@ app.listen(port, () => {
 
 const mongoose = require('mongoose');
 
-// const mongoURL = "mongodb://127.0.0.1:27017/login-page"
+
 main().then(() => {
     console.log("Connection established")
 })
