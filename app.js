@@ -16,7 +16,7 @@ const flash = require('connect-flash')
 const ExpressError = require('./utils/ExpressError')
 const wrapAsync = require('./utils/wrapAsync')
 const User = require('./models/users')
-const ZEROBOUNCE_API_KEY = process.env.ZEROBOUNCE_API_KEY;
+const HUNTER_API_KEY = process.env.HUNTER_API_KEY;
 const dbUrl = process.env.ATLASDB_URL;
 const store = MongoStore.create({
     mongoUrl : dbUrl,
@@ -59,14 +59,14 @@ passport.use(new passportLocal(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-const validateEmailWithZeroBounce = async (email) => {
-    const apiUrl = `https://api.zerobounce.net/v2/validate?api_key=${ZEROBOUNCE_API_KEY}&email=${email}`;
+const validateEmailWithHunter = async (email) => {
+    const apiUrl = `https://api.hunter.io/v2/email-verifier?email=${email}&api_key=${HUNTER_API_KEY}`;
     try {
         const response = await axios.get(apiUrl);
         return response.data; // Return the response data
     } catch (error) {
-        console.error('Error during ZeroBounce validation:', error.message);
-        throw new Error('Error validating email with ZeroBounce.');
+        console.error('Error during Hunter validation:', error.message);
+        throw new Error('Error validating email with Hunter.io.');
     }
 };
 
@@ -90,9 +90,9 @@ app.post('/signup', wrapAsync(async(req, res, next) => {
     try{
         const { email, username, password } = req.body
 
-        const emailValidation = await validateEmailWithZeroBounce(email)
-        if (emailValidation.status !== 'valid') {
-            req.flash('error', `Invalid email: ${emailValidation.sub_status || emailValidation.status}`);
+        const emailValidation = await validateEmailWithHunter(email)
+        if (emailValidation.data.result !== 'deliverable') {
+            req.flash('error', `Invalid email: ${emailValidation.data.sub_status || emailValidation.data.status}`);
             return res.redirect('/signup');
         }
         
